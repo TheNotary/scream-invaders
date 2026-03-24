@@ -1,6 +1,6 @@
 # GitHub Pong 3D 🏓
 
-A ridicolous fork of [@martinwoodward's 3dbreakout](https://x.com/martinwoodward/status/2035922957177180353). A 3D pong game themed after the GitHub contribution graph, with webcam eyebrow-tracking controls 🙄 Made with lulz and GitHub Copilot CLI.
+A ridiculous fork of [@martinwoodward's 3dbreakout](https://x.com/martinwoodward/status/2035922957177180353). A 3D pong game themed after the GitHub contribution graph, with webcam eyebrow-tracking controls 🙄 Made with lulz and GitHub Copilot CLI.
 
 ![](demo.webp)
 
