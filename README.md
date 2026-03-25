@@ -1,61 +1,49 @@
-# GitHub Pong 3D 🏓
+# GitHub Pong 3D 🏓 + Scream Invaders 👾
 
-A ridiculous fork of [@martinwoodward's 3dbreakout](https://x.com/martinwoodward/status/2035922957177180353). A 3D pong game themed after the GitHub contribution graph, with webcam eyebrow-tracking controls 🙄 Made with lulz and GitHub Copilot CLI.
+Two webcam-controlled games, zero dependencies to install.
 
-![](demo.webp)
+## Games
 
-## Features
+### [Scream Invaders](scream-invaders.html) 👾🎤
 
-- **Eyebrow-Tracked Paddles** — Raise your eyebrows to move your paddle up; relax to drift down
-- **2-Player Mode** — Two faces detected = two human players, each controlling their own paddle
-- **AI Opponent** — If only one face is detected, an AI controls the opposing paddle
-- **Contribution Square Ball** — The ball is a green GitHub contribution square
-- **GitHub Aesthetic** — Dark theme with the iconic green contribution palette
-- **Head-Coupled Parallax** — 3D camera adjusts based on your head position
-- **Particle Effects** — Scoring triggers green cube fragment explosions
-- **Keyboard Fallback** — If no camera, use W/S (P1) and ↑/↓ (P2)
+A Space Invaders clone where your keyboard is useless and your dignity is optional.
 
-## How to Play
+- **Webcam** tracks your face -- tilt your head to move
+- **Microphone** controls your weapon -- quiet noise = single shot, yell = triple burst, full scream = screen-clearing beam
+- **Voice commands** -- say "LEFT" or "RIGHT" out loud
 
-1. Open `index.html` in a modern browser (Chrome/Edge recommended)
-2. Allow camera access when prompted
-3. Press **SPACE** to start
-4. **Raise your eyebrows** to move your paddle up
-5. **Relax your eyebrows** to let your paddle drift down
-6. First to **5 points** wins!
+By wave 5 you'll be standing up. By wave 7 someone will come check on you. This is working as intended.
 
-## Controls
+**[Play Scream Invaders](https://ashleywolf.github.io/3dpingpong/scream-invaders.html)**
 
-| Input | Action |
-|-------|--------|
-| Eyebrows raised | Paddle moves up |
-| Eyebrows neutral | Paddle drifts down |
-| `W` / `S` | Player 1 paddle (keyboard fallback) |
-| `↑` / `↓` | Player 2 paddle (keyboard fallback) |
-| `SPACE` / Tap | Start / Restart |
+### [GitHub Pong 3D](index.html) 🏓
 
-## Player Modes
+A 3D pong game themed after the GitHub contribution graph, with webcam eyebrow-tracking controls.
 
-- **2 Players** — Two faces in the webcam, each person's eyebrows control their paddle
-- **1 Player + AI** — One face detected; you play against a computer opponent
-- **Keyboard** — No camera available; W/S for P1, Arrow keys for P2
+- **Raise your eyebrows** to move your paddle up
+- **2-Player Mode** -- two faces detected = two human players
+- **AI Opponent** -- one face = you vs. computer
+- **Head-coupled parallax** -- 3D camera adjusts based on your head position
+
+**[Play GitHub Pong 3D](https://ashleywolf.github.io/3dpingpong/)**
 
 ## Running Locally
 
-Serve the directory with any static file server:
-
 ```bash
-# Python
 python3 -m http.server 8000
-
-# Node.js
-npx serve .
+open http://localhost:8000
 ```
 
-Then open http://localhost:8000
+Camera and mic need HTTPS or localhost.
 
-## Tech Stack
+## Lineage
 
-- [Three.js](https://threejs.org/) — 3D rendering
-- [MediaPipe Face Landmarker](https://developers.google.com/mediapipe/solutions/vision/face_landmarker) — 478-point face mesh with eyebrow tracking
-- Vanilla HTML/CSS/JS — No build step required
+[@martinwoodward's 3dbreakout](https://github.com/martinwoodward/3dbreakout) begat [@leereilly's 3dpingpong](https://github.com/leereilly/3dpingpong) begat [@ashleywolf's scream-invaders](https://github.com/ashleywolf/scream-invaders). Each one asks: what if the controller is your body?
+
+## Tech
+
+- [Three.js](https://threejs.org/) -- 3D rendering
+- [TensorFlow.js + BlazeFace](https://github.com/nicolo-ribaudo/face-mesh) / [MediaPipe](https://developers.google.com/mediapipe) -- face tracking
+- [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) -- microphone volume analysis
+- [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) -- voice commands
+- Vanilla HTML/CSS/JS -- no build step
