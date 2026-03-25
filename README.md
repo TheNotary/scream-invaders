@@ -1,49 +1,41 @@
-# GitHub Pong 3D 🏓 + Scream Invaders 👾
+# SCREAM INVADERS 👾🎤
 
-Two webcam-controlled games, zero dependencies to install.
+**[PLAY NOW](https://ashleywolf.github.io/scream-invaders/scream-invaders.html)** (bring headphones or warn your coworkers)
 
-## Games
+A Space Invaders clone where your keyboard is useless and your dignity is optional. Your webcam is the controller. Your lungs are the weapon.
 
-### [Scream Invaders](scream-invaders.html) 👾🎤
+## How it works
 
-A Space Invaders clone where your keyboard is useless and your dignity is optional.
+- **Your face moves the ship.** Tilt your head left, ship goes left. No hands required.
+- **Your voice fires.** Quiet noise = single shot. Yell = triple burst. Full scream = screen-clearing beam that shakes the display.
+- **Voice commands work too.** Say "LEFT" or "RIGHT" out loud. The aliens don't care about your feelings.
 
-- **Webcam** tracks your face -- tilt your head to move
-- **Microphone** controls your weapon -- quiet noise = single shot, yell = triple burst, full scream = screen-clearing beam
-- **Voice commands** -- say "LEFT" or "RIGHT" out loud
+By wave 5 you'll be standing up. By wave 7 someone will come check on you.
 
-By wave 5 you'll be standing up. By wave 7 someone will come check on you. This is working as intended.
+This is working as intended.
 
-**[Play Scream Invaders](https://ashleywolf.github.io/scream-invaders/scream-invaders.html)**
+## What's under the hood
 
-### [GitHub Pong 3D](index.html) 🏓
+37KB. One HTML file. No build step. No npm install. No server required.
 
-A 3D pong game themed after the GitHub contribution graph, with webcam eyebrow-tracking controls.
+- [Three.js](https://threejs.org/) for 3D rendering
+- [TensorFlow.js + BlazeFace](https://github.com/nicolo-ribaudo/face-mesh) for face tracking
+- [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) for microphone volume
+- [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) for voice commands
 
-- **Raise your eyebrows** to move your paddle up
-- **2-Player Mode** -- two faces detected = two human players
-- **AI Opponent** -- one face = you vs. computer
-- **Head-coupled parallax** -- 3D camera adjusts based on your head position
-
-**[Play GitHub Pong 3D](https://ashleywolf.github.io/scream-invaders/)**
-
-## Running Locally
+## Run locally
 
 ```bash
 python3 -m http.server 8000
-open http://localhost:8000
+open http://localhost:8000/scream-invaders.html
 ```
 
 Camera and mic need HTTPS or localhost.
 
 ## Lineage
 
-[@martinwoodward's 3dbreakout](https://github.com/martinwoodward/3dbreakout) begat [@leereilly's 3dpingpong](https://github.com/leereilly/3dpingpong) begat [@ashleywolf's scream-invaders](https://github.com/ashleywolf/scream-invaders). Each one asks: what if the controller is your body?
+This repo is a fork of [@leereilly's 3dpingpong](https://github.com/leereilly/3dpingpong) (itself a fork of [@martinwoodward's 3dbreakout](https://github.com/martinwoodward/3dbreakout)). Same question, different answer: what if the controller is your body?
 
-## Tech
+## License
 
-- [Three.js](https://threejs.org/) -- 3D rendering
-- [TensorFlow.js + BlazeFace](https://github.com/nicolo-ribaudo/face-mesh) / [MediaPipe](https://developers.google.com/mediapipe) -- face tracking
-- [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) -- microphone volume analysis
-- [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) -- voice commands
-- Vanilla HTML/CSS/JS -- no build step
+MIT
