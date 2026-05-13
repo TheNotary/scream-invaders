@@ -1,0 +1,49 @@
+---
+id: 12
+title: Update overlay text and input mode labels for solfège
+type: task
+status: closed
+priority: 3
+parent: 2
+blocked_by:
+- 5
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:08:51.414389060Z
+updated_at: 2026-05-13T05:15:36.338665503Z
+closed_at: 2026-05-13T05:15:36.338664851Z
+---
+
+Update the game's overlay screens and input mode label to explain the new solfège-based controls.
+
+## Requirements
+1. In `showOverlay('title')`:
+   - Change subtitle from "Scream to shoot. Move your head, arrow keys, or say LEFT / RIGHT."
+   - To: "Sing Do Re Mi Fa Sol La Ti to shoot. Move your head, arrow keys, or say LEFT / RIGHT. Press M to toggle mode."
+   - Add a small note: "🎧 Headphones recommended" below the subtitle
+
+2. In `updateInputModeLabel()`:
+   - Append the current firing mode to the label
+   - e.g., "Head + Pitch + Solfège" or "Head + Voice + Falsetto"
+   - Replace "Scream" with "Solfège" in the parts array
+
+3. Keep volume meter operational for visual feedback (do NOT remove `getVolume()` calls or the volume meter DOM updates in `update()`).
+
+## Dependencies
+- Depends on #5 or #6 (firingMode variable exists)
+
+## Files
+- game.js: `showOverlay()` (~line 660), `updateInputModeLabel()` (~line 578)
+
+## Acceptance
+- Title screen explains solfège controls clearly
+- Input mode label shows current mode (Pitch/Falsetto)
+- Volume meter still animates based on mic input
+- Headphone recommendation visible on start screen
+
+---
+COMMENT
+2026-05-13T05:15:36.335003043Z
+author: lively-comet
+
+12

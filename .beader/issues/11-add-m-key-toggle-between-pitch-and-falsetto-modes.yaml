@@ -1,0 +1,46 @@
+---
+id: 11
+title: Add M key toggle between pitch and falsetto modes
+type: task
+status: closed
+priority: 2
+parent: 2
+blocked_by:
+- 9
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:08:39.097792435Z
+updated_at: 2026-05-13T05:14:57.368736078Z
+closed_at: 2026-05-13T05:14:57.368735426Z
+---
+
+Add keyboard binding to switch between pitch-mode and falsetto-mode during gameplay.
+
+## Requirements
+1. Listen for 'KeyM' in the existing `keydown` handler:
+   - Toggle `firingMode` between 'pitch' and 'falsetto'
+   - Update `#modeToggle` text to reflect current mode: "[M] Pitch Mode" / "[M] Falsetto Mode"
+   - Call `updateInputModeLabel()` to refresh the input mode display
+
+2. Initialize `#modeToggle` text on game start to show default mode ("[M] Pitch Mode")
+
+3. Do not allow mode toggle during title/gameover screens (only when `gameState === 'playing'`)
+
+## Dependencies
+- Depends on #9 (modeToggle DOM element exists)
+
+## Files
+- game.js: keydown handler (~line 700), new toggle logic
+
+## Acceptance
+- Pressing M during gameplay toggles mode
+- HUD immediately reflects the new mode
+- Pressing M on title/gameover does nothing
+- Mode persists across waves (doesn't reset on wave clear)
+
+---
+COMMENT
+2026-05-13T05:14:57.365780330Z
+author: lively-comet
+
+11

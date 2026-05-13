@@ -1,0 +1,46 @@
+---
+id: 3
+title: Implement autocorrelation pitch detection engine
+type: task
+status: closed
+priority: 1
+parent: 2
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:06:57.469997694Z
+updated_at: 2026-05-13T05:10:34.701140958Z
+closed_at: 2026-05-13T05:10:34.701140198Z
+---
+
+Implement real-time pitch detection for vocal input in game.js.
+
+## Requirements
+1. Increase `analyser.fftSize` from 512 to 2048 (or 4096) for sufficient frequency resolution at vocal ranges (80-1000 Hz). Keep the existing frequency-domain volume analysis (`getByteFrequencyData`) working alongside the new time-domain pitch detection.
+
+2. Add a new `Float32Array` buffer for time-domain data (`analyser.getFloatTimeDomainData()`).
+
+3. Implement `detectPitch()` using autocorrelation algorithm:
+   - Compute RMS of the time-domain buffer; return null if below a silence threshold (~0.01)
+   - Perform normalized autocorrelation over the buffer
+   - Find the first peak after the initial drop to determine the fundamental period
+   - Convert period (in samples) to frequency: `freq = sampleRate / period`
+   - Return the frequency in Hz, or null if no clear pitch detected
+   - Suitable frequency range: 80 Hz to 1000 Hz (covers vocal fundamentals C2-C6)
+
+4. The function should be efficient enough to call every frame at 60fps without jank.
+
+## Files
+- game.js: `setupAudio()` at line 507 (increase fftSize, allocate Float32Array)
+- game.js: new function `detectPitch()` near the `getVolume()` function at line 602
+
+## Acceptance
+- `detectPitch()` returns ~261 Hz when a C4 is sung into the mic
+- Returns null during silence or ambient noise
+- Does not break existing `getVolume()` volume meter functionality
+
+---
+COMMENT
+2026-05-13T05:10:34.695459894Z
+author: lively-comet
+
+3

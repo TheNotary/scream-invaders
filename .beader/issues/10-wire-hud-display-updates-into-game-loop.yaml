@@ -1,0 +1,52 @@
+---
+id: 10
+title: Wire HUD display updates into game loop
+type: task
+status: closed
+priority: 2
+parent: 2
+blocked_by:
+- 9
+- 5
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:08:30.979025374Z
+updated_at: 2026-05-13T05:14:33.438953676Z
+closed_at: 2026-05-13T05:14:33.438952915Z
+---
+
+Connect the solfège/pitch display elements to the game update loop so they show and fade correctly.
+
+## Requirements
+1. In `update()`, manage the solfège display lifecycle:
+   - When `solfegeDisplayTimer > 0`:
+     - Decrement by `dt` each frame
+     - Set `#solfegeDisplay` text to `lastDetectedSolfege`, opacity to `Math.min(1, solfegeDisplayTimer / 0.3)` (quick fade-in, slow fade-out)
+     - Set `#pitchDisplay` text to `lastDetectedFreq + ' Hz'`, same opacity
+   - When timer hits 0: set both elements' opacity to 0
+
+2. In pitch-mode, keep `#targetNote` visible with current target: `"Sing: " + currentTargetNote`
+   - Hide `#targetNote` in falsetto-mode (opacity 0)
+
+3. Add DOM references at top of file (alongside existing refs):
+   - `solfegeDisplayEl`, `pitchDisplayEl`, `targetNoteEl`, `modeToggleEl`
+
+## Dependencies
+- Depends on #9 (HUD elements exist in DOM)
+- Depends on #5 (pitch-mode state variables exist)
+
+## Files
+- game.js: DOM refs near line 42, display logic in `update()` near end of gameplay block
+
+## Acceptance
+- On successful solfège detection, word appears large and green at center, fades over 1.5s
+- Frequency appears below in gray, same timing
+- Target note shows persistently in pitch-mode, hidden in falsetto-mode
+- No layout shifts or flicker during rapid detection
+
+---
+COMMENT
+2026-05-13T05:14:33.434445398Z
+author: lively-comet
+
+10

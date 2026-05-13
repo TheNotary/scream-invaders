@@ -1,0 +1,53 @@
+---
+id: 8
+title: Create serene C drone reference note
+type: task
+status: closed
+priority: 1
+parent: 2
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:08:02.885179743Z
+updated_at: 2026-05-13T05:11:42.746046734Z
+closed_at: 2026-05-13T05:11:42.746045974Z
+---
+
+Implement a serene, yoga-like C drone that plays during gameplay as a pitch reference for the player.
+
+## Requirements
+1. Create `startDrone()` function that layers multiple sine oscillators for a serene timbre:
+   - C3 (130.81 Hz) — fundamental, gain ~1.0 relative
+   - C4 (261.63 Hz) — octave above, gain ~0.3 relative
+   - G3 (196.00 Hz) — perfect fifth, gain ~0.15 relative for warmth
+   - Master GainNode at very low volume (~0.06) so it doesn't overpower gameplay or saturate mic
+
+2. Gentle attack envelope:
+   - Fade in over 2 seconds using `linearRampToValueAtTime`
+   - Smooth, no clicking on start/stop
+
+3. Create `stopDrone()` function:
+   - Fade out over 1 second, then disconnect/stop oscillators
+   - Clean up references
+
+4. Store drone nodes in module-level variables (e.g., `droneOscillators`, `droneGain`) so they can be toggled.
+
+5. Integration points:
+   - Call `startDrone()` when `gameState` transitions to 'playing' (in the Space/tap handler, after `resetGame()`)
+   - Call `stopDrone()` when `gameState` transitions to 'gameover' or 'title' (in `hitShip()` game over path and `showOverlay()`)
+
+## Files
+- game.js: new functions near the SFX section (~line 520), integration in input handlers (~line 700) and `hitShip()` (~line 650)
+
+## Acceptance
+- A warm, quiet C drone begins 2s fade-in when gameplay starts
+- Drone is clearly a C note (verifiable with a tuner app)
+- Drone stops gracefully on game over (no audio pop)
+- Drone volume is low enough to not dominate mic input or cause feedback
+- Drone does not restart/stack if player restarts quickly
+
+---
+COMMENT
+2026-05-13T05:11:42.742284696Z
+author: lively-comet
+
+8

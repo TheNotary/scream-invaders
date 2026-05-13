@@ -32,12 +32,20 @@ let currentVolume = 0, smoothVolume = 0;
 let mouseX = 0, mouseDown = false;
 const keysDown = new Set();
 let faceModel = null;
-let videoEl, audioCtx, analyser, audioData;
+let videoEl, audioCtx, analyser, audioData, timeDomainData;
 let wasAboveThreshold = false, lastVolumeDropTime = 0;
 let hitPauseFrames = 0;
 let faceTrackBusy = false;
 let sustainedScreamTime = 0;
 let volume11Active = false;
+
+// ── Solfège firing state ──
+let firingMode = 'pitch'; // 'pitch' | 'falsetto'
+let currentTargetNote = 'Do';
+let lastDetectedSolfege = '';
+let lastDetectedFreq = 0;
+let solfegeDisplayTimer = 0;
+let pitchFiringLocked = false;
 
 // ── DOM refs ──
 const canvas = document.getElementById('gameCanvas');
@@ -50,6 +58,10 @@ const volumeFill = document.getElementById('volumeFill');
 const statusEl = document.getElementById('status');
 const inputModeEl = document.getElementById('inputMode');
 const crtOverlay = document.getElementById('crtOverlay');
+const solfegeDisplayEl = document.getElementById('solfegeDisplay');
+const pitchDisplayEl = document.getElementById('pitchDisplay');
+const targetNoteEl = document.getElementById('targetNote');
+const modeToggleEl = document.getElementById('modeToggle');
 
 // ── Three.js Setup ──
 function initThree() {
@@ -401,6 +413,17 @@ function fireWeapon(volume) {
   }
 }
 
+function fireSolfegeShot() {
+  const now = performance.now();
+  if (now - lastFireTime < FIRE_COOLDOWN_MS) return;
+  lastFireTime = now;
+
+  const sx = ship.position.x;
+  const sy = ship.position.y + 0.5;
+  bullets.push(createBullet(sx, sy, false));
+  sfxShot();
+}
+
 // ── Camera / Mic Setup ──
 async function setupCamera() {
   videoEl = document.getElementById('webcamFeed');
@@ -440,6 +463,18 @@ function initVoiceCommands() {
     console.warn('SpeechRecognition API not available');
     return;
   }
+
+  // Solfège syllable → canonical name mapping
+  const solfegeWords = {
+    'do':'Do','doe':'Do','doh':'Do',
+    're':'Re','ray':'Re',
+    'mi':'Mi','me':'Mi','mee':'Mi',
+    'fa':'Fa','fah':'Fa',
+    'sol':'Sol','so':'Sol','sole':'Sol',
+    'la':'La','lah':'La',
+    'ti':'Ti','tee':'Ti','tea':'Ti'
+  };
+
   const recognition = new SpeechRecognition();
   recognition.continuous = true;
   recognition.interimResults = true;
@@ -447,12 +482,27 @@ function initVoiceCommands() {
   recognition.onresult = function(event) {
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript.toLowerCase().trim();
+      // Movement commands — work in both modes
       if (transcript.includes('left')) {
         shipTargetX = Math.max(-FIELD_W/2 + 0.8, shipTargetX - 3);
         voiceOverrideUntil = performance.now() + 500;
       } else if (transcript.includes('right')) {
         shipTargetX = Math.min(FIELD_W/2 - 0.8, shipTargetX + 3);
         voiceOverrideUntil = performance.now() + 500;
+      }
+      // Solfège firing — only in falsetto mode
+      if (firingMode === 'falsetto' && gameState === 'playing') {
+        const words = transcript.split(/\s+/);
+        for (const word of words) {
+          const canonical = solfegeWords[word];
+          if (canonical) {
+            fireSolfegeShot();
+            lastDetectedSolfege = canonical;
+            lastDetectedFreq = 0; // no pitch data in speech mode
+            solfegeDisplayTimer = 1.5;
+            break; // one fire per recognition event
+          }
+        }
       }
     }
   };
@@ -508,10 +558,11 @@ function setupAudio(stream) {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const source = audioCtx.createMediaStreamSource(stream);
   analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 512;
+  analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.3;
   source.connect(analyser);
   audioData = new Uint8Array(analyser.frequencyBinCount);
+  timeDomainData = new Float32Array(analyser.fftSize);
   loadSfxBuffers();
 }
 
@@ -558,6 +609,68 @@ function sfxWaveClear() {
 }
 function sfxMarch() { playTone(80, 0.03, 'square', 0.06); }
 
+// ── Reference C Drone ──
+let droneOscillators = [];
+let droneGain = null;
+let droneActive = false;
+
+function startDrone() {
+  if (!audioCtx || droneActive) return;
+  droneActive = true;
+
+  droneGain = audioCtx.createGain();
+  droneGain.gain.setValueAtTime(0, audioCtx.currentTime);
+  droneGain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 2);
+  droneGain.connect(audioCtx.destination);
+
+  // C3 fundamental (130.81 Hz)
+  const osc1 = audioCtx.createOscillator();
+  const g1 = audioCtx.createGain();
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(130.81, audioCtx.currentTime);
+  g1.gain.value = 1.0;
+  osc1.connect(g1);
+  g1.connect(droneGain);
+  osc1.start();
+
+  // C4 octave (261.63 Hz)
+  const osc2 = audioCtx.createOscillator();
+  const g2 = audioCtx.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(261.63, audioCtx.currentTime);
+  g2.gain.value = 0.3;
+  osc2.connect(g2);
+  g2.connect(droneGain);
+  osc2.start();
+
+  // G3 perfect fifth (196.00 Hz)
+  const osc3 = audioCtx.createOscillator();
+  const g3 = audioCtx.createGain();
+  osc3.type = 'sine';
+  osc3.frequency.setValueAtTime(196.00, audioCtx.currentTime);
+  g3.gain.value = 0.15;
+  osc3.connect(g3);
+  g3.connect(droneGain);
+  osc3.start();
+
+  droneOscillators = [osc1, osc2, osc3];
+}
+
+function stopDrone() {
+  if (!droneActive || !droneGain) return;
+  droneActive = false;
+  const fadeEnd = audioCtx.currentTime + 1;
+  droneGain.gain.linearRampToValueAtTime(0, fadeEnd);
+  const oscs = droneOscillators;
+  const gain = droneGain;
+  droneOscillators = [];
+  droneGain = null;
+  setTimeout(() => {
+    oscs.forEach(o => { try { o.stop(); o.disconnect(); } catch(e) {} });
+    try { gain.disconnect(); } catch(e) {}
+  }, 1100);
+}
+
 async function loadFaceModel() {
   statusEl.textContent = 'Loading face model...';
   faceModel = await blazeface.load();
@@ -569,8 +682,12 @@ function updateInputModeLabel() {
   if (headTrackingActive) parts.push('Head');
   if (voiceActive) parts.push('Voice');
   if (!headTrackingActive && !voiceActive) parts.push('Mouse');
-  if (micActive) parts.push('Scream');
-  else parts.push('Click');
+  if (micActive) {
+    parts.push(firingMode === 'pitch' ? 'Pitch' : 'Falsetto');
+    parts.push('Solfège');
+  } else {
+    parts.push('Click');
+  }
   inputModeEl.textContent = parts.join(' + ');
 }
 
@@ -605,6 +722,94 @@ function getVolume() {
   let sum = 0;
   for (let i = 0; i < audioData.length; i++) sum += audioData[i];
   return (sum / audioData.length) / 255;
+}
+
+// ── Pitch detection (autocorrelation) ──
+function detectPitch() {
+  if (!analyser || !timeDomainData) return null;
+  analyser.getFloatTimeDomainData(timeDomainData);
+  const buf = timeDomainData;
+  const n = buf.length;
+
+  // RMS gate — ignore silence / quiet noise
+  let rms = 0;
+  for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / n);
+  if (rms < 0.01) return null;
+
+  // Autocorrelation
+  const sampleRate = audioCtx.sampleRate;
+  // Lag range corresponding to 80–1000 Hz
+  const minLag = Math.floor(sampleRate / 1000); // ~1000 Hz ceiling
+  const maxLag = Math.floor(sampleRate / 80);   // ~80 Hz floor
+
+  let bestCorr = 0;
+  let bestLag = -1;
+
+  for (let lag = minLag; lag <= maxLag && lag < n; lag++) {
+    let corr = 0;
+    for (let i = 0; i < n - lag; i++) {
+      corr += buf[i] * buf[i + lag];
+    }
+    if (corr > bestCorr) {
+      bestCorr = corr;
+      bestLag = lag;
+    }
+  }
+
+  if (bestLag < 1) return null;
+
+  // Require correlation to be reasonably strong relative to zero-lag (energy)
+  let zeroCorr = 0;
+  for (let i = 0; i < n; i++) zeroCorr += buf[i] * buf[i];
+  if (bestCorr / zeroCorr < 0.3) return null;
+
+  // Parabolic interpolation around peak for sub-sample accuracy
+  const prev = autocorrAt(buf, n, bestLag - 1);
+  const curr = bestCorr;
+  const next = autocorrAt(buf, n, bestLag + 1);
+  const shift = (prev - next) / (2 * (prev - 2 * curr + next));
+  const refinedLag = bestLag + (isFinite(shift) ? shift : 0);
+
+  return sampleRate / refinedLag;
+}
+
+function autocorrAt(buf, n, lag) {
+  if (lag < 0 || lag >= n) return 0;
+  let corr = 0;
+  for (let i = 0; i < n - lag; i++) corr += buf[i] * buf[i + lag];
+  return corr;
+}
+
+// ── Frequency to solfège mapping ──
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SOLFEGE_MAP = { 'C':'Do','D':'Re','E':'Mi','F':'Fa','G':'Sol','A':'La','B':'Ti' };
+const SOLFEGE_NOTES = ['Do','Re','Mi','Fa','Sol','La','Ti'];
+
+function frequencyToSolfege(freq) {
+  if (!freq || freq < 60 || freq > 1100) return null;
+  // Semitones from A4 (440 Hz)
+  const semitones = 12 * Math.log2(freq / 440);
+  const rounded = Math.round(semitones);
+  const cents = (semitones - rounded) * 100;
+  if (Math.abs(cents) > 50) return null;
+
+  // Note index (A = 9 in our NOTE_NAMES array where C = 0)
+  let noteIndex = ((rounded % 12) + 12 + 9) % 12; // +9 because A is index 9 from C
+  const noteName = NOTE_NAMES[noteIndex];
+
+  // Only accept natural notes (no sharps/flats)
+  if (noteName.includes('#')) return null;
+
+  const octave = Math.floor((rounded + 9) / 12) + 4; // A4 = octave 4
+  const solfege = SOLFEGE_MAP[noteName];
+
+  return {
+    solfege: solfege,
+    note: noteName + octave,
+    freq: freq,
+    cents: Math.round(cents)
+  };
 }
 
 // ── Game Logic ──
@@ -651,6 +856,7 @@ function hitShip() {
   updateHUD();
   if (lives <= 0) {
     gameState = 'gameover';
+    stopDrone();
     showOverlay('gameover');
   }
 }
@@ -668,7 +874,7 @@ function showOverlay(mode) {
 
   if (mode === 'title') {
     h1.innerHTML = '<span>Scream</span> Invaders 3D';
-    sub.textContent = 'Scream to shoot. Move your head, arrow keys, or say LEFT / RIGHT.';
+    sub.innerHTML = 'Sing Do Re Mi Fa Sol La Ti to shoot. Move your head, arrow keys, or say LEFT / RIGHT. Press M to toggle mode.<br><span style="font-size:9px;color:#6e7681;margin-top:8px;display:inline-block">🎧 Headphones recommended</span>';
     overlayPrompt.textContent = 'Tap or press SPACE to start';
   } else {
     h1.innerHTML = 'GAME OVER';
@@ -694,11 +900,18 @@ document.addEventListener('keydown', e => {
       gameState = 'playing';
       overlayEl.classList.add('hidden');
       resetGame();
+      startDrone();
     }
   }
   if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
     e.preventDefault();
     keysDown.add(e.code);
+  }
+  if (e.code === 'KeyM' && gameState === 'playing') {
+    firingMode = firingMode === 'pitch' ? 'falsetto' : 'pitch';
+    modeToggleEl.textContent = '[M] ' + (firingMode === 'pitch' ? 'Pitch Mode' : 'Falsetto Mode');
+    pitchFiringLocked = false;
+    updateInputModeLabel();
   }
 });
 
@@ -710,6 +923,7 @@ function handleStartTap(e) {
     gameState = 'playing';
     overlayEl.classList.add('hidden');
     resetGame();
+    startDrone();
   }
 }
 overlayEl.addEventListener('click', handleStartTap);
@@ -761,17 +975,29 @@ function update(dt) {
   // head-coupled parallax
   camera.position.x = shipActualX * 0.08;
 
-  // ─ Edge-triggered scream shooting ─
-  if (micActive) {
-    if (!wasAboveThreshold && smoothVolume >= VOL_QUIET) {
-      wasAboveThreshold = true;
-      fireWeapon(smoothVolume);
-    } else if (wasAboveThreshold && smoothVolume >= VOL_LOUD) {
-      fireWeapon(smoothVolume);
+  // ─ Solfège / scream shooting ─
+  if (micActive && firingMode === 'pitch') {
+    const pitchHz = detectPitch();
+    if (pitchHz) {
+      const match = frequencyToSolfege(pitchHz);
+      if (match && !pitchFiringLocked) {
+        fireSolfegeShot();
+        lastDetectedSolfege = match.solfege;
+        lastDetectedFreq = Math.round(pitchHz);
+        solfegeDisplayTimer = 1.5;
+        pitchFiringLocked = true;
+        // Cycle target to a different random note
+        let next;
+        do { next = SOLFEGE_NOTES[Math.floor(Math.random() * SOLFEGE_NOTES.length)]; }
+        while (next === currentTargetNote && SOLFEGE_NOTES.length > 1);
+        currentTargetNote = next;
+      }
+      if (!match) pitchFiringLocked = false;
+    } else {
+      pitchFiringLocked = false;
     }
-    if (wasAboveThreshold && smoothVolume < VOL_QUIET * 0.6) {
-      wasAboveThreshold = false;
-    }
+  } else if (micActive && firingMode === 'falsetto') {
+    // Falsetto-mode firing handled in speech recognition callback
   } else if (mouseDown) {
     fireWeapon(VOL_QUIET);
   }
@@ -793,6 +1019,7 @@ function update(dt) {
         const wy = inv.mesh.position.y + invaderGroup.position.y;
         if (wy <= SHIP_Y + 1) {
           gameState = 'gameover';
+          stopDrone();
           showOverlay('gameover');
           return;
         }
@@ -911,7 +1138,24 @@ function update(dt) {
 
   } // end gameplay block
 
-
+  // ─ Solfège HUD display ─
+  if (solfegeDisplayTimer > 0) {
+    solfegeDisplayTimer -= dt;
+    const opacity = Math.max(0, Math.min(1, solfegeDisplayTimer / 0.3));
+    solfegeDisplayEl.textContent = lastDetectedSolfege;
+    solfegeDisplayEl.style.opacity = opacity;
+    pitchDisplayEl.textContent = lastDetectedFreq > 0 ? lastDetectedFreq + ' Hz' : '';
+    pitchDisplayEl.style.opacity = opacity;
+  } else {
+    solfegeDisplayEl.style.opacity = 0;
+    pitchDisplayEl.style.opacity = 0;
+  }
+  if (gameState === 'playing' && firingMode === 'pitch') {
+    targetNoteEl.textContent = 'Sing: ' + currentTargetNote;
+    targetNoteEl.style.opacity = 1;
+  } else {
+    targetNoteEl.style.opacity = 0;
+  }
 
   // ─ Particles ─
   for (let i = particles.length - 1; i >= 0; i--) {

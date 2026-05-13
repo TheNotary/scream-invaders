@@ -1,0 +1,13 @@
+---
+id: 1
+title: Support Musical Voice Input
+type: epic
+status: halted
+priority: 1
+assignees:
+- fluent-blaze
+created_at: 2026-05-13T05:06:13.018506604Z
+updated_at: 2026-05-13T05:06:45.024215011Z
+---
+
+Evolve the game from raw volume-based input to musical/vocal interaction paradigms. Covers pitch detection, solfège recognition, musical feedback systems, and audio-driven gameplay mechanics.

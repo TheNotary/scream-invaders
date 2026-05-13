@@ -1,0 +1,46 @@
+---
+id: 4
+title: Add frequency-to-solfège mapping
+type: task
+status: closed
+priority: 1
+parent: 2
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:07:10.842750156Z
+updated_at: 2026-05-13T05:10:41.906999180Z
+closed_at: 2026-05-13T05:10:41.906998637Z
+---
+
+Implement a function that converts a detected frequency (Hz) to its nearest solfège note.
+
+## Requirements
+1. Create `frequencyToSolfege(freq)` that:
+   - Converts frequency to the nearest chromatic note (octave-independent using 12-TET math)
+   - Maps note index to solfège: C→Do, D→Re, E→Mi, F→Fa, G→Sol, A→La, B→Ti
+   - Calculates the cent deviation from the exact note frequency
+   - Returns `{ solfege: 'Do', note: 'C4', freq: 261.63, cents: -3 }` if within tolerance
+   - Returns null if the cent deviation exceeds ±50 cents (half a semitone)
+
+2. Reference frequencies (12-TET, A4=440Hz):
+   - C4=261.63, D4=293.66, E4=329.63, F4=349.23, G4=392.00, A4=440.00, B4=493.88
+
+3. Must work across all octaves (C2-C6) since vocal ranges vary widely.
+
+4. Only the 7 natural notes qualify (no sharps/flats): C, D, E, F, G, A, B
+
+## Files
+- game.js: new function near `detectPitch()`
+
+## Acceptance
+- 261 Hz → `{ solfege: 'Do', note: 'C4', ... }`
+- 440 Hz → `{ solfege: 'La', note: 'A4', ... }`
+- 280 Hz (between D4 and C#4, >50 cents from either) → null
+- Works for C2 (65 Hz) through C6 (1047 Hz)
+
+---
+COMMENT
+2026-05-13T05:10:41.903797148Z
+author: lively-comet
+
+4

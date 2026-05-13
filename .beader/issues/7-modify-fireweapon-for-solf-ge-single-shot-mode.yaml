@@ -1,0 +1,40 @@
+---
+id: 7
+title: Modify fireWeapon() for solfège single-shot mode
+type: task
+status: closed
+priority: 2
+parent: 2
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:07:46.078097021Z
+updated_at: 2026-05-13T05:12:05.953938171Z
+closed_at: 2026-05-13T05:12:05.953937520Z
+---
+
+Simplify the fireWeapon() function when called from solfège detection to always fire a single shot.
+
+## Requirements
+1. When firing is triggered by solfège detection (pitch or falsetto mode), always fire a single bullet:
+   - No volume-based weapon tiers (no triple shot, no beam)
+   - Single bullet from ship center position
+   - Play `sfxShot()` sound effect
+
+2. Keep the existing volume-based weapon selection as fallback for mouse/click mode (when `micActive` is false and user clicks).
+
+3. Approach: Add a parameter to `fireWeapon()` or create a separate `fireSolfegeShot()` that always does single bullet, OR pass a flag that bypasses volume tier logic.
+
+## Files
+- game.js: `fireWeapon()` at line 379
+
+## Acceptance
+- Solfège-triggered fire always produces exactly one bullet
+- Mouse click fallback still uses the old volume-based weapon tiers
+- No visual/audio regression for the single shot
+
+---
+COMMENT
+2026-05-13T05:12:05.950143882Z
+author: lively-comet
+
+7

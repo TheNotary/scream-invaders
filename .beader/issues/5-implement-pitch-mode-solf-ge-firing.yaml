@@ -1,0 +1,60 @@
+---
+id: 5
+title: Implement pitch-mode solfège firing
+type: task
+status: closed
+priority: 1
+parent: 2
+blocked_by:
+- 3
+- 4
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:07:26.158809769Z
+updated_at: 2026-05-13T05:13:14.930566834Z
+closed_at: 2026-05-13T05:13:14.930566182Z
+---
+
+Wire pitch detection into the game firing system for pitch-mode.
+
+## Requirements
+1. Add state variables:
+   - `firingMode` ('pitch' | 'falsetto') — default 'pitch'
+   - `currentTargetNote` — random solfège note the player should sing (for display)
+   - `lastDetectedSolfege` — most recently matched note name
+   - `lastDetectedFreq` — most recently detected frequency in Hz
+   - `solfegeDisplayTimer` — countdown for on-screen display fade
+   - `pitchFiringLocked` — edge-trigger lock to prevent continuous firing on sustained note
+
+2. In the `update()` function (currently at line 735), when `firingMode === 'pitch'` and `micActive`:
+   - Call `detectPitch()` each frame
+   - If result is non-null, pass to `frequencyToSolfege()`
+   - If solfège match found AND `pitchFiringLocked === false`:
+     - Fire a single shot via `fireWeapon()` (always single bullet, no volume tiers)
+     - Set `lastDetectedSolfege` and `lastDetectedFreq` for display
+     - Set `solfegeDisplayTimer = 1.5` (seconds)
+     - Set `pitchFiringLocked = true`
+     - Cycle `currentTargetNote` to a new random note
+   - If no solfège match (null result), reset `pitchFiringLocked = false`
+
+3. Replace/gate the existing volume-based edge-trigger firing block (lines 762-776) so it only runs when `firingMode` is not set (fallback/mouse mode).
+
+## Dependencies
+- Depends on #3 (pitch detection engine)
+- Depends on #4 (frequency-to-solfège mapping)
+
+## Files
+- game.js: state variables near line 30, update() firing block near line 762
+
+## Acceptance
+- Singing a C note fires exactly one shot, then locks until voice drops/changes
+- Singing D after C fires another shot
+- Sustained single note only fires once (edge-triggered)
+- Mouse click fallback still works when mic unavailable
+
+---
+COMMENT
+2026-05-13T05:13:14.927166839Z
+author: lively-comet
+
+5

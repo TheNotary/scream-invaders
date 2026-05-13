@@ -1,0 +1,51 @@
+---
+id: 6
+title: Implement falsetto-mode speech recognition firing
+type: task
+status: closed
+priority: 2
+parent: 2
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:07:37.826901338Z
+updated_at: 2026-05-13T05:13:47.998666301Z
+closed_at: 2026-05-13T05:13:47.998665432Z
+---
+
+Extend speech recognition to recognize solfège syllables for falsetto-mode firing.
+
+## Requirements
+1. In `initVoiceCommands()` (line 439), extend the `onresult` handler to detect solfège syllables in addition to "left"/"right":
+   - Match: "do", "doe", "re", "ray", "mi", "me", "fa", "fah", "sol", "so", "la", "lah", "ti", "tee"
+   - On match AND `firingMode === 'falsetto'`:
+     - Fire a single shot
+     - Set `lastDetectedSolfege` to the canonical solfège name (Do/Re/Mi/Fa/Sol/La/Ti)
+     - Set `solfegeDisplayTimer = 1.5`
+   - Continue to handle "left"/"right" for movement in both modes
+
+2. Map phonetic variants to canonical names:
+   - "do", "doe" → "Do"
+   - "re", "ray" → "Re"
+   - "mi", "me" → "Mi"
+   - "fa", "fah" → "Fa"
+   - "sol", "so" → "Sol"
+   - "la", "lah" → "La"
+   - "ti", "tee" → "Ti"
+
+3. Avoid double-firing: if speech recognition triggers in pitch-mode, ignore it (only fire via pitch detection in that mode).
+
+## Files
+- game.js: `initVoiceCommands()` at line 439
+
+## Acceptance
+- In falsetto-mode, saying "do" fires one shot and displays "Do"
+- Saying "left" still moves ship without firing
+- In pitch-mode, saying solfège syllables does NOT fire (only pitch detection fires)
+- Web Speech API gracefully falls back if unavailable
+
+---
+COMMENT
+2026-05-13T05:13:47.994918380Z
+author: lively-comet
+
+6

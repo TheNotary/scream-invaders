@@ -1,0 +1,55 @@
+---
+id: 9
+title: Add solfège and pitch HUD display elements
+type: task
+status: closed
+priority: 2
+parent: 2
+assignees:
+- lively-comet
+created_at: 2026-05-13T05:08:17.171745885Z
+updated_at: 2026-05-13T05:12:33.348174085Z
+closed_at: 2026-05-13T05:12:33.348173325Z
+---
+
+Add DOM elements and CSS to scream-invaders.html for displaying the detected solfège word and pitch on screen.
+
+## Requirements
+1. Add new DOM elements to scream-invaders.html (inside `<body>`, after existing HUD elements):
+   - `#solfegeDisplay`: Large center-screen text showing the sung solfège word (e.g., "Do")
+     - Position: fixed, center of screen, vertically offset slightly above center
+     - Font: 'Press Start 2P', large (36-48px)
+     - Color: #39d353 (contribution green) with text-shadow glow
+     - Starts with opacity: 0, set to 1 on detection, CSS transition for fade
+   - `#pitchDisplay`: Smaller text below #solfegeDisplay showing frequency (e.g., "261 Hz")
+     - Font: same family, smaller (14-16px)
+     - Color: #8b949e (muted gray)
+     - Same opacity/fade behavior as parent
+   - `#targetNote`: Persistent display showing "Sing: Mi" (pitch-mode only)
+     - Position: fixed, bottom area near ship (above status text)
+     - Font: 12px
+     - Color: #58a6ff (blue accent)
+   - `#modeToggle`: Small hint text showing "[M] Pitch Mode" or "[M] Falsetto Mode"
+     - Position: fixed, bottom-left area near inputMode label
+     - Font: 11px, color: #484f58
+
+2. CSS rules:
+   - Transitions: `opacity 0.3s ease-in` for fade-in, `opacity 1s ease-out` for fade-out
+   - pointer-events: none on all display elements
+   - z-index: 15 (same as other HUD elements)
+
+## Files
+- scream-invaders.html: new elements in body (~line 80) and CSS rules (~line 50)
+
+## Acceptance
+- All four elements render correctly without overlapping existing HUD
+- Elements are invisible by default (opacity 0)
+- Retro pixel font matches existing game aesthetic
+- Elements don't intercept mouse/touch events
+
+---
+COMMENT
+2026-05-13T05:12:33.343681662Z
+author: lively-comet
+
+9
