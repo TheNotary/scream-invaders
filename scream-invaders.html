@@ -468,13 +468,16 @@ function fireWeapon(volume) {
     bullets.push(createBullet(sx, sy, true));
     shakeAmount = 0.5;
     spawnExplosion(sx, sy, 0xb87aff, 12);
+    sfxBeam();
   } else if (volume >= VOL_MED) {
     bullets.push(createBullet(sx - 0.4, sy, false));
     bullets.push(createBullet(sx, sy, false));
     bullets.push(createBullet(sx + 0.4, sy, false));
     shakeAmount = 0.1;
+    sfxTriple();
   } else {
     bullets.push(createBullet(sx, sy, false));
+    sfxShot();
   }
 }
 
@@ -549,6 +552,38 @@ function initVoiceCommands() {
   }
 }
 
+const sfxBuffers = {};
+const SFX_FILES = {
+  playerShot: 'assets/player-shot.wav',
+  playerTriple: 'assets/player-triple.wav',
+  playerBeam: 'assets/player-beam.wav',
+  enemyShot: 'assets/enemy-shot.wav',
+  explosion: 'assets/explosion.wav',
+  shipExplosion: 'assets/ship-explosion.wav'
+};
+
+function loadSfxBuffers() {
+  if (!audioCtx) return;
+  Object.entries(SFX_FILES).forEach(([key, url]) => {
+    fetch(url)
+      .then(r => r.arrayBuffer())
+      .then(buf => audioCtx.decodeAudioData(buf))
+      .then(decoded => { sfxBuffers[key] = decoded; })
+      .catch(e => console.warn('SFX load failed:', key, e));
+  });
+}
+
+function playSfx(buffer, volume) {
+  if (!audioCtx || !buffer) return;
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  src.buffer = buffer;
+  gain.gain.value = volume || 0.4;
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+}
+
 function setupAudio(stream) {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const source = audioCtx.createMediaStreamSource(stream);
@@ -557,6 +592,7 @@ function setupAudio(stream) {
   analyser.smoothingTimeConstant = 0.3;
   source.connect(analyser);
   audioData = new Uint8Array(analyser.frequencyBinCount);
+  loadSfxBuffers();
 }
 
 function playTone(freq, duration, type, volume) {
@@ -588,11 +624,12 @@ function playSweep(startFreq, endFreq, duration, type, volume) {
   osc.stop(audioCtx.currentTime + duration);
 }
 
-function sfxShot() { playTone(880, 0.05, 'square', 0.08); }
-function sfxTriple() { playTone(660, 0.08, 'square', 0.09); }
-function sfxBeam() { playSweep(880, 220, 0.2, 'sawtooth', 0.1); }
-function sfxInvaderDeath() { playSweep(440, 110, 0.15, 'square', 0.1); }
-function sfxShipHit() { playTone(110, 0.3, 'sawtooth', 0.12); }
+function sfxShot() { playSfx(sfxBuffers.playerShot, 0.5); }
+function sfxTriple() { playSfx(sfxBuffers.playerTriple, 0.5); }
+function sfxBeam() { playSfx(sfxBuffers.playerBeam, 0.6); }
+function sfxInvaderDeath() { playSfx(sfxBuffers.explosion, 0.5); }
+function sfxShipHit() { playSfx(sfxBuffers.shipExplosion, 0.7); }
+function sfxEnemyShot() { playSfx(sfxBuffers.enemyShot, 0.35); }
 function sfxWaveClear() {
   playTone(523, 0.1, 'square', 0.08);
   setTimeout(() => playTone(659, 0.1, 'square', 0.08), 100);
@@ -689,7 +726,7 @@ function updateHUD() {
 function hitShip() {
   lives--;
   spawnExplosion(ship.position.x, ship.position.y, 0xf85149, 20);
-
+  sfxShipHit();
   shakeAmount = 0.4;
   updateHUD();
   if (lives <= 0) {
@@ -889,6 +926,7 @@ function update(dt) {
           const pts = POINT_VALUES[inv.row] * (b.wide ? 2 : 1);
           score += pts;
           spawnExplosion(ix, iy, new THREE.Color(CONTRIB_COLORS[inv.row]).getHex(), 15);
+          sfxInvaderDeath();
           const label = pts >= 50 ? 'MERGED! +' + pts : 'APPROVED +' + pts;
           spawnFloatingText(ix, iy, label);
 
@@ -928,6 +966,7 @@ function update(dt) {
       const bx = shooter.mesh.position.x + invaderGroup.position.x;
       const by = shooter.mesh.position.y + invaderGroup.position.y;
       bombs.push(createBomb(bx, by - 0.5));
+      sfxEnemyShot();
     }
   }
 
