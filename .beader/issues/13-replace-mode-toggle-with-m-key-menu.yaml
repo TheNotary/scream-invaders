@@ -1,0 +1,33 @@
+---
+id: 13
+title: Replace mode toggle with M-key menu
+type: task
+status: closed
+priority: 1
+assignees:
+- quick-thorn
+created_at: 2026-05-14T01:51:37.801461457Z
+updated_at: 2026-05-14T01:53:52.196914754Z
+closed_at: 2026-05-14T01:53:52.196914293Z
+---
+
+## Summary
+Replace the single M-key toggle (which causes text overlap at the bottom of the screen) with a proper in-game menu that opens when M is pressed, showing numbered options to toggle modes on/off.
+
+## User Message
+There is an overlap issue with the mode text on the screen. Let's have pressing M open an actual menu, then choose a number to toggle modes on/off.
+
+## Requirements
+- M key opens/closes a menu panel during gameplay
+- Menu shows numbered options for toggling firing modes
+- Number keys (1, 2) toggle individual modes on/off
+- Menu closes on M or Escape
+- Remove old #modeToggle element, replace with #modeMenu
+- Fix bottom-left text overlap issue
+
+---
+COMMENT
+2026-05-14T01:53:52.193759233Z
+author: quick-thorn
+
+13

@@ -8,9 +8,9 @@ A Space Invaders clone where your keyboard is useless and your dignity is option
 
 - **Your face moves the ship.** Tilt your head left, ship goes left. No hands required.
 - **Your voice fires.** Sing Do, Re, Mi, Fa, Sol, La, or Ti to fire. A serene C drone plays as your reference pitch.
-- **Two firing modes.** Press M to toggle:
-  - **Pitch Mode** — the game detects the pitch you're singing and maps it to solfège notes. A target note is shown on screen.
-  - **Falsetto Mode** — uses speech recognition to detect solfège syllables you speak/sing aloud.
+- **Two firing modes.** Press M to open the mode menu, then pick by number:
+  - **[1] Pitch Detection** — the game detects the pitch you're singing and maps it to solfège notes. A target note is shown on screen.
+  - **[2] Falsetto (Speech)** — uses speech recognition to detect solfège syllables you speak/sing aloud.
 - **On-screen feedback.** When you fire successfully, the solfège word you sang appears on screen along with your detected pitch.
 - **Voice commands work too.** Say "LEFT" or "RIGHT" out loud. The aliens don't care about your feelings.
 - **Headphones recommended** to prevent the reference drone from feeding back into your microphone.

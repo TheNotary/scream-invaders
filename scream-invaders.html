@@ -42,7 +42,15 @@ body { background: #0d1117; overflow: hidden; font-family: 'Press Start 2P', mon
 #solfegeDisplay { position: fixed; top: 38%; left: 50%; transform: translate(-50%, -50%); font-size: 42px; color: #39d353; text-shadow: 0 0 20px rgba(57,211,83,0.6), 0 0 40px rgba(57,211,83,0.3); z-index: 15; pointer-events: none; opacity: 0; transition: opacity 0.15s ease-in; }
 #pitchDisplay { position: fixed; top: calc(38% + 40px); left: 50%; transform: translateX(-50%); font-size: 14px; color: #8b949e; z-index: 15; pointer-events: none; opacity: 0; transition: opacity 0.15s ease-in; }
 #targetNote { position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #58a6ff; z-index: 15; pointer-events: none; opacity: 0; }
-#modeToggle { position: fixed; bottom: 12px; left: 14px; font-size: 11px; color: #484f58; z-index: 15; pointer-events: none; }
+#modeHint { position: fixed; top: 48px; right: 24px; font-size: 9px; color: #484f58; z-index: 15; pointer-events: none; }
+#modeMenu { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(13,17,23,0.95); border: 2px solid #30363d; border-radius: 8px; padding: 24px 32px; z-index: 25; min-width: 280px; }
+#modeMenu .menu-title { font-size: 14px; color: #58a6ff; margin-bottom: 18px; text-align: center; }
+#modeMenu .menu-item { font-size: 11px; color: #c9d1d9; margin-bottom: 10px; cursor: pointer; padding: 6px 8px; border-radius: 4px; }
+#modeMenu .menu-item:hover { background: rgba(88,166,255,0.1); }
+#modeMenu .menu-item .key { color: #58a6ff; }
+#modeMenu .menu-item .on { color: #39d353; }
+#modeMenu .menu-item .off { color: #f85149; }
+#modeMenu .menu-hint { font-size: 9px; color: #484f58; text-align: center; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -71,7 +79,7 @@ body { background: #0d1117; overflow: hidden; font-family: 'Press Start 2P', mon
 
 <div id="overlay">
   <h1><span>Scream</span> Invaders 3D</h1>
-  <div class="subtitle">Sing Do Re Mi Fa Sol La Ti to shoot. Move your head, arrow keys, or say LEFT / RIGHT. Press M to toggle mode.<br><span style="font-size:9px;color:#6e7681;margin-top:8px;display:inline-block">🎧 Headphones recommended</span></div>
+  <div class="subtitle">Sing Do Re Mi Fa Sol La Ti to shoot. Move your head, arrow keys, or say LEFT / RIGHT. Press M for menu.<br><span style="font-size:9px;color:#6e7681;margin-top:8px;display:inline-block">🎧 Headphones recommended</span></div>
   <div class="prompt" id="overlayPrompt">Tap or press SPACE to start</div>
 </div>
 
@@ -80,7 +88,13 @@ body { background: #0d1117; overflow: hidden; font-family: 'Press Start 2P', mon
 <div id="solfegeDisplay"></div>
 <div id="pitchDisplay"></div>
 <div id="targetNote"></div>
-<div id="modeToggle">[M] Pitch Mode</div>
+<div id="modeHint">[M] Menu</div>
+<div id="modeMenu">
+  <div class="menu-title">── FIRE MODE ──</div>
+  <div class="menu-item" id="menuPitch"><span class="key">[1]</span> Pitch Detection <span class="on">ON</span></div>
+  <div class="menu-item" id="menuFalsetto"><span class="key">[2]</span> Falsetto (Speech) <span class="off">OFF</span></div>
+  <div class="menu-hint">Press M or ESC to close</div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>

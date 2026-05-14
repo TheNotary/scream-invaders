@@ -46,6 +46,7 @@ let lastDetectedSolfege = '';
 let lastDetectedFreq = 0;
 let solfegeDisplayTimer = 0;
 let pitchFiringLocked = false;
+let menuOpen = false;
 
 // ── DOM refs ──
 const canvas = document.getElementById('gameCanvas');
@@ -61,7 +62,10 @@ const crtOverlay = document.getElementById('crtOverlay');
 const solfegeDisplayEl = document.getElementById('solfegeDisplay');
 const pitchDisplayEl = document.getElementById('pitchDisplay');
 const targetNoteEl = document.getElementById('targetNote');
-const modeToggleEl = document.getElementById('modeToggle');
+const modeMenuEl = document.getElementById('modeMenu');
+const modeHintEl = document.getElementById('modeHint');
+const menuPitchEl = document.getElementById('menuPitch');
+const menuFalsettoEl = document.getElementById('menuFalsetto');
 
 // ── Three.js Setup ──
 function initThree() {
@@ -691,6 +695,12 @@ function updateInputModeLabel() {
   inputModeEl.textContent = parts.join(' + ');
 }
 
+function updateModeMenu() {
+  const pitchOn = firingMode === 'pitch';
+  menuPitchEl.innerHTML = '<span class="key">[1]</span> Pitch Detection <span class="' + (pitchOn ? 'on' : 'off') + '">' + (pitchOn ? 'ON' : 'OFF') + '</span>';
+  menuFalsettoEl.innerHTML = '<span class="key">[2]</span> Falsetto (Speech) <span class="' + (!pitchOn ? 'on' : 'off') + '">' + (!pitchOn ? 'ON' : 'OFF') + '</span>';
+}
+
 // ── Face tracking loop ──
 let faceTrackFrame = 0;
 async function trackFace() {
@@ -823,6 +833,9 @@ function resetGame() {
   score = 0; lives = 3; wave = 1;
   shipTargetX = 0; shipActualX = 0;
   if (ship) ship.position.x = 0;
+  menuOpen = false;
+  modeMenuEl.style.display = 'none';
+  modeHintEl.style.opacity = '1';
   spawnInvaders();
   updateHUD();
 }
@@ -862,6 +875,9 @@ function hitShip() {
 }
 
 function showOverlay(mode) {
+  menuOpen = false;
+  modeMenuEl.style.display = 'none';
+  modeHintEl.style.opacity = '0';
   overlayEl.classList.remove('hidden');
   const h1 = overlayEl.querySelector('h1');
   const sub = overlayEl.querySelector('.subtitle');
@@ -874,7 +890,7 @@ function showOverlay(mode) {
 
   if (mode === 'title') {
     h1.innerHTML = '<span>Scream</span> Invaders 3D';
-    sub.innerHTML = 'Sing Do Re Mi Fa Sol La Ti to shoot. Move your head, arrow keys, or say LEFT / RIGHT. Press M to toggle mode.<br><span style="font-size:9px;color:#6e7681;margin-top:8px;display:inline-block">🎧 Headphones recommended</span>';
+    sub.innerHTML = 'Sing Do Re Mi Fa Sol La Ti to shoot. Move your head, arrow keys, or say LEFT / RIGHT. Press M for menu.<br><span style="font-size:9px;color:#6e7681;margin-top:8px;display:inline-block">🎧 Headphones recommended</span>';
     overlayPrompt.textContent = 'Tap or press SPACE to start';
   } else {
     h1.innerHTML = 'GAME OVER';
@@ -908,9 +924,25 @@ document.addEventListener('keydown', e => {
     keysDown.add(e.code);
   }
   if (e.code === 'KeyM' && gameState === 'playing') {
-    firingMode = firingMode === 'pitch' ? 'falsetto' : 'pitch';
-    modeToggleEl.textContent = '[M] ' + (firingMode === 'pitch' ? 'Pitch Mode' : 'Falsetto Mode');
+    menuOpen = !menuOpen;
+    modeMenuEl.style.display = menuOpen ? 'block' : 'none';
+    modeHintEl.style.opacity = menuOpen ? '0' : '1';
+  }
+  if (e.code === 'Escape' && menuOpen) {
+    menuOpen = false;
+    modeMenuEl.style.display = 'none';
+    modeHintEl.style.opacity = '1';
+  }
+  if (menuOpen && (e.code === 'Digit1' || e.code === 'Numpad1')) {
+    firingMode = 'pitch';
     pitchFiringLocked = false;
+    updateModeMenu();
+    updateInputModeLabel();
+  }
+  if (menuOpen && (e.code === 'Digit2' || e.code === 'Numpad2')) {
+    firingMode = 'falsetto';
+    pitchFiringLocked = false;
+    updateModeMenu();
     updateInputModeLabel();
   }
 });
