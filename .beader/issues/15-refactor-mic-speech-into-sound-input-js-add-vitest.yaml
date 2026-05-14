@@ -1,0 +1,32 @@
+---
+id: 15
+title: Refactor mic/speech into sound_input.js & add Vitest
+type: feature
+status: closed
+priority: 1
+parent: 14
+created_at: 2026-05-14T02:16:24.729505481Z
+updated_at: 2026-05-14T02:23:35.113481599Z
+closed_at: 2026-05-14T02:23:35.113481047Z
+---
+
+## Summary
+Extract all microphone input, pitch detection, volume analysis, and speech recognition code from game.js into a new ES module sound_input.js. Convert the project from IIFE/globals to ES modules. Add Vitest for unit testing with initial tests covering the pure functions.
+
+## User Message
+Refactor all of the speech / input microphone handling logic into sound_input.js. Let's add some kind of unit testing framework to this project also, it's getting out of hand.
+
+## Plan
+Extract ~150 lines of audio input/analysis code (setupAudio, getVolume, detectPitch, autocorrAt, frequencyToSolfege, initVoiceCommands, related state and constants) from game.js into sound_input.js as an ES module. Convert the project from IIFE to ES modules. Use callback-based decoupling so sound_input.js has zero knowledge of game state. SFX playback, drone, and game-specific audio effects stay in game.js, accessing the shared AudioContext via a getter. Add Vitest with tests for the pure functions (frequencyToSolfege, autocorrAt) and exported constants.
+
+### Phases
+1. Bootstrap ES Modules & Vitest — package.json, script tag type="module", remove IIFE wrapper
+2. Extract sound_input.js — create module, update game.js imports, callback-based voice commands
+3. Add Vitest Tests — vitest.config.js, tests/sound_input.test.js
+
+### Key Decisions
+- Only mic input/analysis moves — SFX, drone, game effects stay in game.js
+- ES modules replace IIFE — enables imports and testability
+- Callback-based decoupling for initVoiceCommands
+- audioCtx shared via getAudioContext() getter
+- loadSfxBuffers() separated from setupAudio()

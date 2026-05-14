@@ -1,0 +1,50 @@
+---
+id: 19
+title: Update game.js to import from sound_input.js
+type: task
+status: closed
+priority: 1
+parent: 15
+blocked_by:
+- 18
+assignees:
+- merry-grove
+created_at: 2026-05-14T02:17:16.856108566Z
+updated_at: 2026-05-14T02:23:25.872136555Z
+closed_at: 2026-05-14T02:23:25.872136003Z
+---
+
+After sound_input.js is created, update game.js to:
+
+1. Add import statement:
+   import { setupAudio, getAudioContext, getVolume, detectPitch, frequencyToSolfege, initVoiceCommands, isVoiceActive, SOLFEGE_NOTES } from './sound_input.js';
+
+2. Remove extracted code from game.js:
+   - Delete state variables: audioCtx, analyser, audioData, timeDomainData (lines ~34-37)
+   - Delete setupAudio() function (lines ~580-592)
+   - Delete initVoiceCommands() function (lines ~462-535)
+   - Delete getVolume() function (lines ~843-849)
+   - Delete detectPitch() function (lines ~763-805)
+   - Delete autocorrAt() function (lines ~807-813)
+   - Delete frequencyToSolfege() function (lines ~815-841)
+   - Delete NOTE_NAMES, SOLFEGE_MAP, SOLFEGE_NOTES constants (lines ~815-817)
+
+3. Update setupCamera():
+   - Call imported setupAudio(stream), then call loadSfxBuffers() separately using the returned audioCtx
+   - Call initVoiceCommands() with callback object:
+     { onMoveLeft: () => { shipTargetX = Math.max(-FIELD_W/2 + 0.8, shipTargetX - 3); voiceOverrideUntil = performance.now() + 500; },
+       onMoveRight: () => { shipTargetX = Math.min(FIELD_W/2 - 0.8, shipTargetX + 3); voiceOverrideUntil = performance.now() + 500; },
+       onSolfegeDetected: (canonical) => { fireSolfegeShot(); lastDetectedSolfege = canonical; lastDetectedFreq = 0; solfegeDisplayTimer = 1.5; },
+       onVoiceStatusChange: (active) => { voiceActive = active; },
+       onFallbackToPitch: () => { firingMode = 'pitch'; updateModeMenu(); updateInputModeLabel(); statusEl.textContent = 'Speech unavailable (network) — using Pitch mode'; } }
+   - voiceActive stays as a game.js variable, set via onVoiceStatusChange callback
+
+4. Update SFX code to use getAudioContext():
+   - loadSfxBuffers(), playSfx(), playTone(), playSweep() — replace direct audioCtx references with getAudioContext()
+
+5. Update drone code to use getAudioContext():
+   - startDrone(), stopDrone() — replace audioCtx with getAudioContext()
+
+6. update() loop calls to getVolume() and detectPitch() remain the same (just imported now)
+
+Files: game.js

@@ -1,0 +1,26 @@
+---
+id: 20
+title: Create Vitest configuration
+type: task
+status: closed
+priority: 2
+parent: 15
+assignees:
+- merry-grove
+created_at: 2026-05-14T02:17:23.257445098Z
+updated_at: 2026-05-14T02:19:02.258447732Z
+closed_at: 2026-05-14T02:19:02.258446997Z
+---
+
+Create vitest.config.js at the project root with minimal configuration suitable for testing ES modules in a Node environment.
+
+The config should be minimal — Vitest works well with zero config for ES modules. A simple defineConfig with test environment set is sufficient.
+
+Files: vitest.config.js (new)
+
+---
+COMMENT
+2026-05-14T02:19:02.243656358Z
+author: merry-grove
+
+16

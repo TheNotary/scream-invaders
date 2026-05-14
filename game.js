@@ -1,5 +1,4 @@
-(function() {
-"use strict";
+import { setupAudio, getAudioContext, getVolume, detectPitch, frequencyToSolfege, initVoiceCommands, isVoiceActive, SOLFEGE_NOTES } from './sound_input.js';
 
 // ── Constants ──
 const FIELD_W = 14, FIELD_H = 18;
@@ -32,7 +31,7 @@ let currentVolume = 0, smoothVolume = 0;
 let mouseX = 0, mouseDown = false;
 const keysDown = new Set();
 let faceModel = null;
-let videoEl, audioCtx, analyser, audioData, timeDomainData;
+let videoEl;
 let wasAboveThreshold = false, lastVolumeDropTime = 0;
 let hitPauseFrames = 0;
 let faceTrackBusy = false;
@@ -429,6 +428,34 @@ function fireSolfegeShot() {
 }
 
 // ── Camera / Mic Setup ──
+const voiceCallbacks = {
+  onMoveLeft() {
+    shipTargetX = Math.max(-FIELD_W/2 + 0.8, shipTargetX - 3);
+    voiceOverrideUntil = performance.now() + 500;
+  },
+  onMoveRight() {
+    shipTargetX = Math.min(FIELD_W/2 - 0.8, shipTargetX + 3);
+    voiceOverrideUntil = performance.now() + 500;
+  },
+  onSolfegeDetected(canonical) {
+    if (firingMode === 'falsetto' && gameState === 'playing') {
+      fireSolfegeShot();
+      lastDetectedSolfege = canonical;
+      lastDetectedFreq = 0;
+      solfegeDisplayTimer = 1.5;
+    }
+  },
+  onVoiceStatusChange(active) {
+    voiceActive = active;
+  },
+  onFallbackToPitch() {
+    firingMode = 'pitch';
+    updateModeMenu();
+    updateInputModeLabel();
+    statusEl.textContent = 'Speech unavailable (network) — using Pitch mode';
+  }
+};
+
 async function setupCamera() {
   videoEl = document.getElementById('webcamFeed');
   try {
@@ -438,11 +465,12 @@ async function setupCamera() {
     });
     videoEl.srcObject = stream;
     setupAudio(stream);
+    loadSfxBuffers();
     await loadFaceModel();
     headTrackingActive = true;
     micActive = true;
     statusEl.textContent = 'Camera + mic active';
-    initVoiceCommands();
+    initVoiceCommands(voiceCallbacks);
     updateInputModeLabel();
   } catch(e) {
     console.warn('Camera+mic failed, trying mic only:', e);
@@ -450,88 +478,15 @@ async function setupCamera() {
     try {
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setupAudio(audioStream);
+      loadSfxBuffers();
       micActive = true;
       statusEl.textContent = 'Mic active (no camera)';
-      initVoiceCommands();
+      initVoiceCommands(voiceCallbacks);
     } catch(e2) {
       console.warn('Mic also failed:', e2);
       statusEl.textContent = 'Mouse + click mode';
     }
     updateInputModeLabel();
-  }
-}
-
-function initVoiceCommands() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    console.warn('SpeechRecognition API not available');
-    return;
-  }
-
-  // Solfège syllable → canonical name mapping
-  const solfegeWords = {
-    'do':'Do','doe':'Do','doh':'Do',
-    're':'Re','ray':'Re',
-    'mi':'Mi','me':'Mi','mee':'Mi',
-    'fa':'Fa','fah':'Fa',
-    'sol':'Sol','so':'Sol','sole':'Sol',
-    'la':'La','lah':'La',
-    'ti':'Ti','tee':'Ti','tea':'Ti'
-  };
-
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-  recognition.onresult = function(event) {
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript.toLowerCase().trim();
-      // Movement commands — work in both modes
-      if (transcript.includes('left')) {
-        shipTargetX = Math.max(-FIELD_W/2 + 0.8, shipTargetX - 3);
-        voiceOverrideUntil = performance.now() + 500;
-      } else if (transcript.includes('right')) {
-        shipTargetX = Math.min(FIELD_W/2 - 0.8, shipTargetX + 3);
-        voiceOverrideUntil = performance.now() + 500;
-      }
-      // Solfège firing — only in falsetto mode
-      if (firingMode === 'falsetto' && gameState === 'playing') {
-        const words = transcript.split(/\s+/);
-        for (const word of words) {
-          const canonical = solfegeWords[word];
-          if (canonical) {
-            fireSolfegeShot();
-            lastDetectedSolfege = canonical;
-            lastDetectedFreq = 0; // no pitch data in speech mode
-            solfegeDisplayTimer = 1.5;
-            break; // one fire per recognition event
-          }
-        }
-      }
-    }
-  };
-  recognition.onend = function() {
-    try { recognition.start(); } catch(e) { /* already running */ }
-  };
-  recognition.onerror = function(e) {
-    if (e.error === 'network') {
-      console.warn('Speech recognition requires internet (uses cloud service)');
-      voiceActive = false;
-      if (firingMode === 'falsetto') {
-        firingMode = 'pitch';
-        updateModeMenu();
-        updateInputModeLabel();
-      }
-      statusEl.textContent = 'Speech unavailable (network) — using Pitch mode';
-    } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
-      console.warn('Speech recognition error:', e.error);
-    }
-  };
-  try {
-    recognition.start();
-    voiceActive = true;
-  } catch(e) {
-    console.warn('Could not start speech recognition:', e);
   }
 }
 
@@ -546,66 +501,58 @@ const SFX_FILES = {
 };
 
 function loadSfxBuffers() {
-  if (!audioCtx) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
   Object.entries(SFX_FILES).forEach(([key, url]) => {
     fetch(url)
       .then(r => r.arrayBuffer())
-      .then(buf => audioCtx.decodeAudioData(buf))
+      .then(buf => ctx.decodeAudioData(buf))
       .then(decoded => { sfxBuffers[key] = decoded; })
       .catch(e => console.warn('SFX load failed:', key, e));
   });
 }
 
 function playSfx(buffer, volume) {
-  if (!audioCtx || !buffer) return;
-  const src = audioCtx.createBufferSource();
-  const gain = audioCtx.createGain();
+  const ctx = getAudioContext();
+  if (!ctx || !buffer) return;
+  const src = ctx.createBufferSource();
+  const gain = ctx.createGain();
   src.buffer = buffer;
   gain.gain.value = volume || 0.4;
   src.connect(gain);
-  gain.connect(audioCtx.destination);
+  gain.connect(ctx.destination);
   src.start();
 }
 
-function setupAudio(stream) {
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const source = audioCtx.createMediaStreamSource(stream);
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 2048;
-  analyser.smoothingTimeConstant = 0.3;
-  source.connect(analyser);
-  audioData = new Uint8Array(analyser.frequencyBinCount);
-  timeDomainData = new Float32Array(analyser.fftSize);
-  loadSfxBuffers();
-}
-
 function playTone(freq, duration, type, volume) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
   osc.type = type || 'square';
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  gain.gain.setValueAtTime(volume || 0.1, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.frequency.setValueAtTime(freq, ctx.currentTime);
+  gain.gain.setValueAtTime(volume || 0.1, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
   osc.connect(gain);
-  gain.connect(audioCtx.destination);
+  gain.connect(ctx.destination);
   osc.start();
-  osc.stop(audioCtx.currentTime + duration);
+  osc.stop(ctx.currentTime + duration);
 }
 
 function playSweep(startFreq, endFreq, duration, type, volume) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
   osc.type = type || 'square';
-  osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
-  osc.frequency.linearRampToValueAtTime(endFreq, audioCtx.currentTime + duration);
-  gain.gain.setValueAtTime(volume || 0.1, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.frequency.setValueAtTime(startFreq, ctx.currentTime);
+  osc.frequency.linearRampToValueAtTime(endFreq, ctx.currentTime + duration);
+  gain.gain.setValueAtTime(volume || 0.1, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
   osc.connect(gain);
-  gain.connect(audioCtx.destination);
+  gain.connect(ctx.destination);
   osc.start();
-  osc.stop(audioCtx.currentTime + duration);
+  osc.stop(ctx.currentTime + duration);
 }
 
 function sfxShot() { playSfx(sfxBuffers.playerShot, 0.5); }
@@ -628,39 +575,40 @@ let droneGain = null;
 let droneActive = false;
 
 function startDrone() {
-  if (!audioCtx || droneActive) return;
+  const ctx = getAudioContext();
+  if (!ctx || droneActive) return;
   droneActive = true;
 
-  droneGain = audioCtx.createGain();
-  droneGain.gain.setValueAtTime(0, audioCtx.currentTime);
-  droneGain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 2);
-  droneGain.connect(audioCtx.destination);
+  droneGain = ctx.createGain();
+  droneGain.gain.setValueAtTime(0, ctx.currentTime);
+  droneGain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 2);
+  droneGain.connect(ctx.destination);
 
   // C3 fundamental (130.81 Hz)
-  const osc1 = audioCtx.createOscillator();
-  const g1 = audioCtx.createGain();
+  const osc1 = ctx.createOscillator();
+  const g1 = ctx.createGain();
   osc1.type = 'sine';
-  osc1.frequency.setValueAtTime(130.81, audioCtx.currentTime);
+  osc1.frequency.setValueAtTime(130.81, ctx.currentTime);
   g1.gain.value = 1.0;
   osc1.connect(g1);
   g1.connect(droneGain);
   osc1.start();
 
   // C4 octave (261.63 Hz)
-  const osc2 = audioCtx.createOscillator();
-  const g2 = audioCtx.createGain();
+  const osc2 = ctx.createOscillator();
+  const g2 = ctx.createGain();
   osc2.type = 'sine';
-  osc2.frequency.setValueAtTime(261.63, audioCtx.currentTime);
+  osc2.frequency.setValueAtTime(261.63, ctx.currentTime);
   g2.gain.value = 0.3;
   osc2.connect(g2);
   g2.connect(droneGain);
   osc2.start();
 
   // G3 perfect fifth (196.00 Hz)
-  const osc3 = audioCtx.createOscillator();
-  const g3 = audioCtx.createGain();
+  const osc3 = ctx.createOscillator();
+  const g3 = ctx.createGain();
   osc3.type = 'sine';
-  osc3.frequency.setValueAtTime(196.00, audioCtx.currentTime);
+  osc3.frequency.setValueAtTime(196.00, ctx.currentTime);
   g3.gain.value = 0.15;
   osc3.connect(g3);
   g3.connect(droneGain);
@@ -672,7 +620,7 @@ function startDrone() {
 function stopDrone() {
   if (!droneActive || !droneGain) return;
   droneActive = false;
-  const fadeEnd = audioCtx.currentTime + 1;
+  const fadeEnd = getAudioContext().currentTime + 1;
   droneGain.gain.linearRampToValueAtTime(0, fadeEnd);
   const oscs = droneOscillators;
   const gain = droneGain;
@@ -736,103 +684,6 @@ async function trackFace() {
     }
   } catch(e) { /* ignore transient errors */ }
   finally { faceTrackBusy = false; }
-}
-
-// ── Audio volume ──
-function getVolume() {
-  if (!analyser) return 0;
-  analyser.getByteFrequencyData(audioData);
-  let sum = 0;
-  for (let i = 0; i < audioData.length; i++) sum += audioData[i];
-  return (sum / audioData.length) / 255;
-}
-
-// ── Pitch detection (autocorrelation) ──
-function detectPitch() {
-  if (!analyser || !timeDomainData) return null;
-  analyser.getFloatTimeDomainData(timeDomainData);
-  const buf = timeDomainData;
-  const n = buf.length;
-
-  // RMS gate — ignore silence / quiet noise
-  let rms = 0;
-  for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
-  rms = Math.sqrt(rms / n);
-  if (rms < 0.01) return null;
-
-  // Autocorrelation
-  const sampleRate = audioCtx.sampleRate;
-  // Lag range corresponding to 80–1000 Hz
-  const minLag = Math.floor(sampleRate / 1000); // ~1000 Hz ceiling
-  const maxLag = Math.floor(sampleRate / 80);   // ~80 Hz floor
-
-  let bestCorr = 0;
-  let bestLag = -1;
-
-  for (let lag = minLag; lag <= maxLag && lag < n; lag++) {
-    let corr = 0;
-    for (let i = 0; i < n - lag; i++) {
-      corr += buf[i] * buf[i + lag];
-    }
-    if (corr > bestCorr) {
-      bestCorr = corr;
-      bestLag = lag;
-    }
-  }
-
-  if (bestLag < 1) return null;
-
-  // Require correlation to be reasonably strong relative to zero-lag (energy)
-  let zeroCorr = 0;
-  for (let i = 0; i < n; i++) zeroCorr += buf[i] * buf[i];
-  if (bestCorr / zeroCorr < 0.3) return null;
-
-  // Parabolic interpolation around peak for sub-sample accuracy
-  const prev = autocorrAt(buf, n, bestLag - 1);
-  const curr = bestCorr;
-  const next = autocorrAt(buf, n, bestLag + 1);
-  const shift = (prev - next) / (2 * (prev - 2 * curr + next));
-  const refinedLag = bestLag + (isFinite(shift) ? shift : 0);
-
-  return sampleRate / refinedLag;
-}
-
-function autocorrAt(buf, n, lag) {
-  if (lag < 0 || lag >= n) return 0;
-  let corr = 0;
-  for (let i = 0; i < n - lag; i++) corr += buf[i] * buf[i + lag];
-  return corr;
-}
-
-// ── Frequency to solfège mapping ──
-const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const SOLFEGE_MAP = { 'C':'Do','D':'Re','E':'Mi','F':'Fa','G':'Sol','A':'La','B':'Ti' };
-const SOLFEGE_NOTES = ['Do','Re','Mi','Fa','Sol','La','Ti'];
-
-function frequencyToSolfege(freq) {
-  if (!freq || freq < 60 || freq > 1100) return null;
-  // Semitones from A4 (440 Hz)
-  const semitones = 12 * Math.log2(freq / 440);
-  const rounded = Math.round(semitones);
-  const cents = (semitones - rounded) * 100;
-  if (Math.abs(cents) > 50) return null;
-
-  // Note index (A = 9 in our NOTE_NAMES array where C = 0)
-  let noteIndex = ((rounded % 12) + 12 + 9) % 12; // +9 because A is index 9 from C
-  const noteName = NOTE_NAMES[noteIndex];
-
-  // Only accept natural notes (no sharps/flats)
-  if (noteName.includes('#')) return null;
-
-  const octave = Math.floor((rounded + 9) / 12) + 4; // A4 = octave 4
-  const solfege = SOLFEGE_MAP[noteName];
-
-  return {
-    solfege: solfege,
-    note: noteName + octave,
-    freq: freq,
-    cents: Math.round(cents)
-  };
 }
 
 // ── Game Logic ──
@@ -924,7 +775,8 @@ function showOverlay(mode) {
 document.addEventListener('keydown', e => {
   if (e.code === 'Space') {
     e.preventDefault();
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
     if (gameState === 'title' || gameState === 'gameover') {
       gameState = 'playing';
       overlayEl.classList.add('hidden');
@@ -964,7 +816,8 @@ document.addEventListener('keydown', e => {
 function handleStartTap(e) {
   if (gameState === 'title' || gameState === 'gameover') {
     e.preventDefault();
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
     gameState = 'playing';
     overlayEl.classList.add('hidden');
     resetGame();
@@ -1300,5 +1153,3 @@ async function init() {
 }
 
 init();
-
-})();

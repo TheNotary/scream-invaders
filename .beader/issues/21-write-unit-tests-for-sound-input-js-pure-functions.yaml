@@ -1,0 +1,48 @@
+---
+id: 21
+title: Write unit tests for sound_input.js pure functions
+type: task
+status: closed
+priority: 1
+parent: 15
+blocked_by:
+- 18
+- 20
+- 16
+assignees:
+- merry-grove
+created_at: 2026-05-14T02:17:37.868392947Z
+updated_at: 2026-05-14T02:23:25.878902499Z
+closed_at: 2026-05-14T02:23:25.878902040Z
+---
+
+Create tests/sound_input.test.js with Vitest tests covering the pure, testable functions exported from sound_input.js.
+
+### frequencyToSolfege() tests
+- Known frequencies map correctly: 261.63 Hz → Do/C, 440 Hz → La/A, 329.63 Hz → Mi/E, 349.23 Hz → Fa/F, 392 Hz → Sol/G, 293.66 Hz → Re/D, 493.88 Hz → Ti/B
+- Out-of-range returns null: freq < 60, freq > 1100
+- Sharp notes return null: 277.18 Hz (C#), 466.16 Hz (A#)
+- Edge cases: null input → null, 0 → null, negative → null, undefined → null
+
+### autocorrAt() tests
+- Known buffer [1, 0, -1, 0, 1] with lag=0 → sum of squares
+- Known buffer with lag=2 → computed correlation
+- Out-of-bounds lag (>= n) → returns 0
+- Negative lag → returns 0
+
+### Exported constants sanity checks
+- NOTE_NAMES has 12 entries, starts with 'C', ends with 'B'
+- SOLFEGE_MAP maps C→Do, D→Re, E→Mi, F→Fa, G→Sol, A→La, B→Ti
+- SOLFEGE_NOTES has 7 entries: Do, Re, Mi, Fa, Sol, La, Ti
+
+### Verification
+- npx vitest run passes all tests
+
+Files: tests/sound_input.test.js (new)
+
+---
+COMMENT
+2026-05-14T02:23:25.868006424Z
+author: merry-grove
+
+19

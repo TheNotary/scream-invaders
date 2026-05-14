@@ -1,0 +1,23 @@
+---
+id: 17
+title: Convert project from IIFE to ES modules
+type: task
+status: closed
+priority: 1
+parent: 15
+assignees:
+- merry-grove
+created_at: 2026-05-14T02:16:41.140029134Z
+updated_at: 2026-05-14T02:19:02.250584561Z
+closed_at: 2026-05-14T02:19:02.250584009Z
+---
+
+Two changes needed:
+
+1. In scream-invaders.html (line ~102): change `<script src="game.js">` to `<script type="module" src="game.js">`
+
+2. In game.js: remove the IIFE wrapper — delete the opening `(function() {` on line 1 and the closing `})();` at the end. ES modules are already strict-scoped so "use strict" can also be removed.
+
+Verification: game still loads in browser with no console errors after these changes.
+
+Files: scream-invaders.html, game.js

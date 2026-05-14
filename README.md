@@ -21,8 +21,10 @@ This is working as intended.
 
 ## What's under the hood
 
-37KB. One HTML file. No build step. No npm install. No server required.
+One HTML file, two JS modules. No server required.
 
+- `game.js` — game loop, rendering, SFX, input handling
+- `sound_input.js` — microphone input, pitch detection, volume analysis, speech recognition
 - [Three.js](https://threejs.org/) for 3D rendering
 - [TensorFlow.js + BlazeFace](https://github.com/nicolo-ribaudo/face-mesh) for face tracking
 - [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) for microphone volume, pitch detection, and reference drone
@@ -36,6 +38,16 @@ open http://localhost:8000/scream-invaders.html
 ```
 
 Camera and mic need HTTPS or localhost.
+
+## Testing
+
+```bash
+npm install
+npm test          # watch mode
+npm run test:run  # single run
+```
+
+Uses [Vitest](https://vitest.dev/). Tests cover pitch detection helpers (`frequencyToSolfege`, `autocorrAt`) and exported constants.
 
 ## Lineage
 

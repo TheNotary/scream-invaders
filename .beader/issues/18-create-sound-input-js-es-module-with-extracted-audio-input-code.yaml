@@ -1,0 +1,58 @@
+---
+id: 18
+title: Create sound_input.js ES module with extracted audio input code
+type: task
+status: closed
+priority: 1
+parent: 15
+blocked_by:
+- 17
+assignees:
+- merry-grove
+created_at: 2026-05-14T02:17:01.712878452Z
+updated_at: 2026-05-14T02:20:03.556635619Z
+closed_at: 2026-05-14T02:20:03.556635079Z
+---
+
+Create sound_input.js as an ES module containing all mic input, pitch detection, volume analysis, and speech recognition code extracted from game.js.
+
+### Module-private state
+- audioCtx, analyser, audioData, timeDomainData — Web Audio API objects
+- voiceActive — whether speech recognition is running
+
+### Exported functions
+- setupAudio(stream) — creates AudioContext + analyser from mic stream; returns audioCtx so game.js can use it for SFX. Does NOT call loadSfxBuffers() (that stays in game.js)
+- getAudioContext() — getter for audioCtx (used by SFX/drone code in game.js)
+- getVolume() — reads frequency data, returns 0-1 normalized volume
+- detectPitch() — autocorrelation pitch detection, returns Hz or null
+- autocorrAt(buf, n, lag) — correlation helper (also exported for testing)
+- frequencyToSolfege(freq) — maps frequency to { solfege, note, freq, cents } or null
+- initVoiceCommands(callbacks) — starts Web Speech API; accepts callback object: { onMoveLeft, onMoveRight, onSolfegeDetected(canonical), onVoiceStatusChange(active), onFallbackToPitch }
+- isVoiceActive() — returns whether speech recognition is running
+
+### Exported constants
+- NOTE_NAMES, SOLFEGE_MAP, SOLFEGE_NOTES
+
+### Key design decisions
+- Callback-based decoupling: initVoiceCommands accepts callbacks so it has zero knowledge of game state (shipTargetX, voiceOverrideUntil, firingMode, etc.)
+- audioCtx shared via getter rather than duplicating AudioContext
+- The solfegeWords mapping (do/doe/doh → Do, etc.) moves into this module
+
+### Source locations in current game.js
+- State vars: lines ~34-37 (audioCtx, analyser, audioData, timeDomainData)
+- setupAudio(): lines ~580-592
+- initVoiceCommands(): lines ~462-535
+- getVolume(): lines ~843-849
+- detectPitch(): lines ~763-805
+- autocorrAt(): lines ~807-813
+- frequencyToSolfege(): lines ~815-841
+- Constants (NOTE_NAMES, SOLFEGE_MAP, SOLFEGE_NOTES): lines ~815-817
+
+Files: sound_input.js (new)
+
+---
+COMMENT
+2026-05-14T02:20:03.553366009Z
+author: merry-grove
+
+18

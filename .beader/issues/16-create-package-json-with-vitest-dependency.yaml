@@ -1,0 +1,23 @@
+---
+id: 16
+title: Create package.json with Vitest dependency
+type: task
+status: closed
+priority: 1
+parent: 15
+assignees:
+- merry-grove
+created_at: 2026-05-14T02:16:35.195441768Z
+updated_at: 2026-05-14T02:19:02.245935470Z
+closed_at: 2026-05-14T02:19:02.245935011Z
+---
+
+Create a package.json at the project root with:
+- Project name and version
+- "test": "vitest" script
+- "test:run": "vitest run" script for CI
+- vitest as a devDependency
+
+This is the first step — no package.json exists yet. Run npm install to verify it works.
+
+Files: package.json (new)

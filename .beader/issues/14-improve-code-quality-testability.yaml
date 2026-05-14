@@ -1,0 +1,11 @@
+---
+id: 14
+title: Improve Code Quality & Testability
+type: epic
+status: todo
+priority: 2
+created_at: 2026-05-14T02:16:10.249511872Z
+updated_at: 2026-05-14T02:16:10.249511872Z
+---
+
+Broad epic covering refactoring, modularization, and testing infrastructure for the Scream Invaders codebase. As the game grows, the single-file architecture needs to be broken into testable modules with proper separation of concerns.
