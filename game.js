@@ -514,7 +514,16 @@ function initVoiceCommands() {
     try { recognition.start(); } catch(e) { /* already running */ }
   };
   recognition.onerror = function(e) {
-    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+    if (e.error === 'network') {
+      console.warn('Speech recognition requires internet (uses cloud service)');
+      voiceActive = false;
+      if (firingMode === 'falsetto') {
+        firingMode = 'pitch';
+        updateModeMenu();
+        updateInputModeLabel();
+      }
+      statusEl.textContent = 'Speech unavailable (network) — using Pitch mode';
+    } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
       console.warn('Speech recognition error:', e.error);
     }
   };
@@ -698,7 +707,11 @@ function updateInputModeLabel() {
 function updateModeMenu() {
   const pitchOn = firingMode === 'pitch';
   menuPitchEl.innerHTML = '<span class="key">[1]</span> Pitch Detection <span class="' + (pitchOn ? 'on' : 'off') + '">' + (pitchOn ? 'ON' : 'OFF') + '</span>';
-  menuFalsettoEl.innerHTML = '<span class="key">[2]</span> Falsetto (Speech) <span class="' + (!pitchOn ? 'on' : 'off') + '">' + (!pitchOn ? 'ON' : 'OFF') + '</span>';
+  if (voiceActive) {
+    menuFalsettoEl.innerHTML = '<span class="key">[2]</span> Falsetto (Speech) <span class="' + (!pitchOn ? 'on' : 'off') + '">' + (!pitchOn ? 'ON' : 'OFF') + '</span>';
+  } else {
+    menuFalsettoEl.innerHTML = '<span class="key">[2]</span> Falsetto (Speech) <span class="off">N/A</span>';
+  }
 }
 
 // ── Face tracking loop ──
@@ -939,7 +952,7 @@ document.addEventListener('keydown', e => {
     updateModeMenu();
     updateInputModeLabel();
   }
-  if (menuOpen && (e.code === 'Digit2' || e.code === 'Numpad2')) {
+  if (menuOpen && (e.code === 'Digit2' || e.code === 'Numpad2') && voiceActive) {
     firingMode = 'falsetto';
     pitchFiringLocked = false;
     updateModeMenu();
